@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# shortcut: update sitemap URL to production domain on deploy
+Sitemap: https://bluetidescuba.example/sitemap.xml
