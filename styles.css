@@ -1897,6 +1897,12 @@ h1, h2, h3, h4 {
   }
 }
 
+@media (max-width: 768px) {
+  .book-turtle-canvas {
+    display: none;
+  }
+}
+
 @media (max-width: 720px) {
   .container {
     width: calc(100% - 32px);

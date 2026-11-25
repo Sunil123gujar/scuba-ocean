@@ -1035,6 +1035,64 @@
       };
     });
 
+    const school = fishCount > 0 ? {
+      startX: 0, startY: 0, endX: 0, endY: 0,
+      arcAmp: 0, progress: 0, duration: 14, lastEdge: -1
+    } : null;
+
+    function pickNextFishRoute(initialProgress = 0) {
+      if (!school || fish.length === 0) return;
+      const pad = 140;
+      let edge = Math.floor(Math.random() * 4);
+      if (edge === school.lastEdge) edge = (edge + 1 + Math.floor(Math.random() * 3)) % 4;
+      school.lastEdge = edge;
+
+      if (edge === 0) {
+        school.startX = -pad;
+        school.startY = height * (0.18 + Math.random() * 0.64);
+        school.endX = width + pad;
+        school.endY = height * (0.18 + Math.random() * 0.64);
+      } else if (edge === 1) {
+        school.startX = width + pad;
+        school.startY = height * (0.18 + Math.random() * 0.64);
+        school.endX = -pad;
+        school.endY = height * (0.18 + Math.random() * 0.64);
+      } else if (edge === 2) {
+        school.startX = width * (0.12 + Math.random() * 0.76);
+        school.startY = -pad;
+        school.endX = school.startX < width * 0.5
+          ? width * (0.55 + Math.random() * 0.38)
+          : width * (0.07 + Math.random() * 0.38);
+        school.endY = height + pad;
+      } else {
+        school.startX = width * (0.12 + Math.random() * 0.76);
+        school.startY = height + pad;
+        school.endX = school.startX < width * 0.5
+          ? width * (0.55 + Math.random() * 0.38)
+          : width * (0.07 + Math.random() * 0.38);
+        school.endY = -pad;
+      }
+
+      const rdx = school.endX - school.startX;
+      const rdy = school.endY - school.startY;
+      const rlen = Math.hypot(rdx, rdy) || 1;
+      const speed = 78 + Math.random() * 22;
+      school.duration = rlen / speed;
+      school.arcAmp = (Math.random() - 0.5) * 140;
+      school.progress = initialProgress;
+
+      const cx = school.startX + rdx * initialProgress;
+      const cy = school.startY + rdy * initialProgress;
+      const vx = (rdx / rlen) * speed;
+      const vy = (rdy / rlen) * speed;
+      for (let i = 0; i < fish.length; i++) {
+        fish[i].x = cx + fish[i].ox;
+        fish[i].y = cy + fish[i].oy;
+        fish[i].vx = vx;
+        fish[i].vy = vy;
+      }
+    }
+
     const manta = hasManta ? { x: -120, y: 220, vx: 26, vy: 0, wingPhase: 0 } : null;
 
     const kelpBlades = hasKelp ? [
@@ -1065,6 +1123,9 @@
       if (!initialized && manta) {
         manta.x = width * 0.22;
         manta.y = height * 0.34;
+      }
+      if (!initialized && school) {
+        pickNextFishRoute(0.18);
       }
       initialized = true;
     }
@@ -1276,16 +1337,31 @@
     }
 
     function stepAndDrawFish(dt) {
-      if (fish.length === 0) return;
-      const schoolX = width * (0.5 + 0.34 * Math.sin(time * 0.21));
-      const schoolY = height * (0.48 + 0.22 * Math.sin(time * 0.42));
+      if (fish.length === 0 || !school) return;
+      school.progress += dt / Math.max(school.duration, 1);
+      if (school.progress >= 1) {
+        pickNextFishRoute(0);
+      }
+
+      const p = school.progress;
+      const rdx = school.endX - school.startX;
+      const rdy = school.endY - school.startY;
+      const rlen = Math.hypot(rdx, rdy) || 1;
+      const perpX = -rdy / rlen;
+      const perpY = rdx / rlen;
+      const arcOffset = Math.sin(p * Math.PI) * school.arcAmp;
+      const schoolX = school.startX + rdx * p + perpX * arcOffset;
+      const schoolY = school.startY + rdy * p + perpY * arcOffset;
+      const arcSlope = Math.cos(p * Math.PI) * Math.PI * school.arcAmp;
+      const schoolVx = (rdx + perpX * arcSlope) / Math.max(school.duration, 1);
+      const schoolVy = (rdy + perpY * arcSlope) / Math.max(school.duration, 1);
 
       for (let i = 0; i < fish.length; i++) {
         const f = fish[i];
         const tx = schoolX + f.ox + Math.sin(time * 0.9 + f.phase) * 14;
         const ty = schoolY + f.oy + Math.cos(time * 1.1 + f.phase) * 10;
-        let dvx = (tx - f.x) * 1.6;
-        let dvy = (ty - f.y) * 1.6;
+        let dvx = schoolVx + (tx - f.x) * 2.0;
+        let dvy = schoolVy + (ty - f.y) * 2.0;
 
         if (pointer.active) {
           const dx = f.x - pointer.x;

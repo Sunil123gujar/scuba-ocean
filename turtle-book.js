@@ -426,6 +426,8 @@
 
   const state = {
     active: false,
+    inView: false,
+    isMobile: window.innerWidth <= 768,
     rafId: 0,
     hasClickTarget: false,
     clickX: 0,
@@ -448,6 +450,14 @@
   };
 
   function resize() {
+    state.isMobile = window.matchMedia
+      ? window.matchMedia('(max-width: 768px)').matches
+      : window.innerWidth <= 768;
+    if (state.isMobile) {
+      stop();
+      return;
+    }
+
     const w = bookSection.clientWidth;
     const h = bookSection.clientHeight;
     if (!w || !h) return;
@@ -459,6 +469,8 @@
     const aspect = canvas.width / Math.max(canvas.height, 1);
     state.halfH = Math.tan(FOV / 2) * EYE[2];
     state.halfW = state.halfH * aspect;
+
+    if (state.inView && !state.active && !reducedMotion) start();
   }
 
   if (typeof ResizeObserver === 'function') {
@@ -630,7 +642,7 @@
   }
 
   function start() {
-    if (reducedMotion || state.active) return;
+    if (reducedMotion || state.isMobile || state.active) return;
     state.active = true;
     lastNow = performance.now();
     if (!state.rafId) state.rafId = requestAnimationFrame(frame);
@@ -645,20 +657,24 @@
   }
 
   if (reducedMotion) {
-    const aspect = canvas.width / Math.max(canvas.height, 1);
-    renderTurtle(0.8, M4.perspective(FOV, aspect, 0.1, 40));
+    if (!state.isMobile) {
+      const aspect = canvas.width / Math.max(canvas.height, 1);
+      renderTurtle(0.8, M4.perspective(FOV, aspect, 0.1, 40));
+    }
     return;
   }
 
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
+        state.inView = entry.isIntersecting;
         if (entry.isIntersecting) start();
         else stop();
       }
     }, { threshold: 0.05 });
     observer.observe(bookSection);
   } else {
+    state.inView = true;
     start();
   }
 })();
