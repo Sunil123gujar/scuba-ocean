@@ -934,12 +934,37 @@
   initHeroWaterShader();
 
   // -------------------------------------------------------
-  // Living Bioluminescent Footer Jellyfish Simulation
+  // Living Bioluminescent Jellyfish Simulation (Footer + Book)
   // -------------------------------------------------------
-  function initFooterJellyfish() {
-    const footer = document.getElementById('site-footer');
-    const canvas = document.getElementById('footer-jellyfish-canvas');
-    if (!footer || !canvas) return;
+  const FOOTER_JELLY_SPECS = [
+    // Left-side pair
+    { scale: 0.92, xRatio: 0.16, minXRatio: 0.06, maxXRatio: 0.36, yRatio: 0.44, dir:  1, pulseRate: 2.15, speedMult: 0.95, phase: 0.0, alpha: 0.95, tint: [56, 214, 245] },
+    { scale: 0.56, xRatio: 0.28, minXRatio: 0.08, maxXRatio: 0.38, yRatio: 0.74, dir: -1, pulseRate: 2.90, speedMult: 0.78, phase: 3.4, alpha: 0.74, tint: [96, 240, 218] },
+    // Center pair
+    { scale: 0.74, xRatio: 0.46, minXRatio: 0.35, maxXRatio: 0.65, yRatio: 0.34, dir:  1, pulseRate: 2.45, speedMult: 0.86, phase: 1.8, alpha: 0.88, tint: [104, 232, 250] },
+    { scale: 0.52, xRatio: 0.56, minXRatio: 0.36, maxXRatio: 0.66, yRatio: 0.66, dir: -1, pulseRate: 3.05, speedMult: 0.76, phase: 4.5, alpha: 0.78, tint: [164, 186, 255] },
+    // Right-side pair
+    { scale: 0.86, xRatio: 0.82, minXRatio: 0.64, maxXRatio: 0.94, yRatio: 0.36, dir: -1, pulseRate: 2.35, speedMult: 0.88, phase: 1.3, alpha: 0.94, tint: [120, 224, 255] },
+    { scale: 0.62, xRatio: 0.74, minXRatio: 0.62, maxXRatio: 0.92, yRatio: 0.68, dir:  1, pulseRate: 2.70, speedMult: 0.80, phase: 2.5, alpha: 0.82, tint: [142, 180, 255] }
+  ];
+
+  const BOOK_JELLY_SPECS = [
+    { scale: 0.78, xRatio: 0.14, minXRatio: 0.05, maxXRatio: 0.34, yRatio: 0.24, dir:  1, pulseRate: 2.15, speedMult: 0.88, phase: 0.4, alpha: 0.86, tint: [56, 214, 245] },
+    { scale: 0.54, xRatio: 0.24, minXRatio: 0.06, maxXRatio: 0.38, yRatio: 0.78, dir: -1, pulseRate: 2.75, speedMult: 0.76, phase: 2.9, alpha: 0.74, tint: [96, 240, 218] },
+    { scale: 0.62, xRatio: 0.50, minXRatio: 0.35, maxXRatio: 0.65, yRatio: 0.20, dir:  1, pulseRate: 2.45, speedMult: 0.80, phase: 1.7, alpha: 0.78, tint: [104, 232, 250] },
+    { scale: 0.74, xRatio: 0.86, minXRatio: 0.66, maxXRatio: 0.95, yRatio: 0.72, dir: -1, pulseRate: 2.30, speedMult: 0.84, phase: 4.1, alpha: 0.84, tint: [142, 180, 255] }
+  ];
+
+  function initJellyfishField(containerId, canvasId, specs, opts = {}) {
+    const {
+      moteCount = 18,
+      fishCount = 0,
+      hasManta = false,
+      hasKelp = false
+    } = opts;
+    const container = document.getElementById(containerId);
+    const canvas = document.getElementById(canvasId);
+    if (!container || !canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -950,32 +975,20 @@
     let time = 0;
 
     const pointer = { x: -999, y: -999, active: false };
-    footer.addEventListener('pointermove', (e) => {
-      const rect = footer.getBoundingClientRect();
+    container.addEventListener('pointermove', (e) => {
+      const rect = container.getBoundingClientRect();
       pointer.x = e.clientX - rect.left;
       pointer.y = e.clientY - rect.top;
       pointer.active = true;
     }, { passive: true });
-    footer.addEventListener('pointerleave', () => {
+    container.addEventListener('pointerleave', () => {
       pointer.active = false;
     });
-
-    const JELLY_SPECS = [
-      // Left-side pair
-      { scale: 0.92, xRatio: 0.16, minXRatio: 0.06, maxXRatio: 0.36, yRatio: 0.44, dir:  1, pulseRate: 2.15, speedMult: 0.95, phase: 0.0, alpha: 0.95, tint: [56, 214, 245] },
-      { scale: 0.56, xRatio: 0.28, minXRatio: 0.08, maxXRatio: 0.38, yRatio: 0.74, dir: -1, pulseRate: 2.90, speedMult: 0.78, phase: 3.4, alpha: 0.74, tint: [96, 240, 218] },
-      // Center pair
-      { scale: 0.74, xRatio: 0.46, minXRatio: 0.35, maxXRatio: 0.65, yRatio: 0.34, dir:  1, pulseRate: 2.45, speedMult: 0.86, phase: 1.8, alpha: 0.88, tint: [104, 232, 250] },
-      { scale: 0.52, xRatio: 0.56, minXRatio: 0.36, maxXRatio: 0.66, yRatio: 0.66, dir: -1, pulseRate: 3.05, speedMult: 0.76, phase: 4.5, alpha: 0.78, tint: [164, 186, 255] },
-      // Right-side pair
-      { scale: 0.86, xRatio: 0.82, minXRatio: 0.64, maxXRatio: 0.94, yRatio: 0.36, dir: -1, pulseRate: 2.35, speedMult: 0.88, phase: 1.3, alpha: 0.94, tint: [120, 224, 255] },
-      { scale: 0.62, xRatio: 0.74, minXRatio: 0.62, maxXRatio: 0.92, yRatio: 0.68, dir:  1, pulseRate: 2.70, speedMult: 0.80, phase: 2.5, alpha: 0.82, tint: [142, 180, 255] }
-    ];
 
     const TENTACLE_COUNT = 7;
     const NODES_PER_TENTACLE = 13;
 
-    const jellies = JELLY_SPECS.map((spec) => {
+    const jellies = specs.map((spec) => {
       const startX = 180 + spec.xRatio * 800;
       const startY = 80 + spec.yRatio * 180;
       return {
@@ -998,17 +1011,44 @@
       };
     });
 
-    const motes = Array.from({ length: 24 }, () => ({
+    const motes = Array.from({ length: moteCount }, () => ({
       x: Math.random() * 1400,
-      y: Math.random() * 320,
+      y: Math.random() * 680,
       r: 0.8 + Math.random() * 1.8,
       phase: Math.random() * Math.PI * 2,
       speed: 6 + Math.random() * 10
     }));
 
+    const fish = Array.from({ length: fishCount }, (_, i) => {
+      const angle = (i / Math.max(1, fishCount)) * Math.PI * 2;
+      const radius = 24 + (i % 4) * 20;
+      return {
+        x: 240 + Math.cos(angle) * radius,
+        y: 180 + Math.sin(angle) * radius * 0.5,
+        vx: 42,
+        vy: 0,
+        ox: Math.cos(angle) * radius,
+        oy: Math.sin(angle) * radius * 0.55,
+        scale: 0.68 + (i % 3) * 0.22,
+        phase: i * 0.85,
+        tint: i % 2 === 0 ? 'rgba(155, 240, 255, 0.44)' : 'rgba(96, 218, 242, 0.36)'
+      };
+    });
+
+    const manta = hasManta ? { x: -120, y: 220, vx: 26, vy: 0, wingPhase: 0 } : null;
+
+    const kelpBlades = hasKelp ? [
+      { xRatio: 0.03, hRatio: 0.26, w: 14, phase: 0.2 },
+      { xRatio: 0.06, hRatio: 0.34, w: 18, phase: 1.5 },
+      { xRatio: 0.095, hRatio: 0.22, w: 12, phase: 2.7 },
+      { xRatio: 0.905, hRatio: 0.24, w: 13, phase: 0.9 },
+      { xRatio: 0.94, hRatio: 0.35, w: 18, phase: 2.2 },
+      { xRatio: 0.972, hRatio: 0.27, w: 14, phase: 3.4 }
+    ] : [];
+
     let initialized = false;
     function resize() {
-      const rect = footer.getBoundingClientRect();
+      const rect = container.getBoundingClientRect();
       dpr = Math.min(window.devicePixelRatio || 1, 2);
       width = Math.max(rect.width, 1);
       height = Math.max(rect.height, 1);
@@ -1022,6 +1062,10 @@
         j.x = Math.max(width * j.minXRatio, Math.min(width * j.maxXRatio, baseX));
         j.y = Math.max(36, Math.min(height - 42, baseY));
       });
+      if (!initialized && manta) {
+        manta.x = width * 0.22;
+        manta.y = height * 0.34;
+      }
       initialized = true;
     }
 
@@ -1170,9 +1214,121 @@
       ctx.restore();
     }
 
+    function drawKelp() {
+      for (let i = 0; i < kelpBlades.length; i++) {
+        const k = kelpBlades[i];
+        const baseX = width * k.xRatio;
+        const h = Math.min(180, height * k.hRatio);
+        const sway = Math.sin(time * 0.95 + k.phase) * 18;
+        const swayMid = Math.sin(time * 0.95 + k.phase - 0.8) * 9;
+        ctx.fillStyle = 'rgba(7, 52, 74, 0.42)';
+        ctx.beginPath();
+        ctx.moveTo(baseX - k.w * 0.5, height);
+        ctx.quadraticCurveTo(baseX - k.w * 0.35 + swayMid, height - h * 0.5, baseX + sway, height - h);
+        ctx.quadraticCurveTo(baseX + k.w * 0.4 + swayMid, height - h * 0.5, baseX + k.w * 0.5, height);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+
+    function stepAndDrawManta(dt) {
+      if (!manta) return;
+      manta.wingPhase += dt * 1.65;
+      const targetY = height * 0.34 + Math.sin(time * 0.24) * (height * 0.10);
+      let desVy = (targetY - manta.y) * 0.6;
+      if (pointer.active) {
+        const dx = manta.x - pointer.x;
+        const dy = manta.y - pointer.y;
+        const d = Math.hypot(dx, dy);
+        if (d < 165 && d > 1) desVy += (dy / d) * 32;
+      }
+      manta.vx += (28 - manta.vx) * Math.min(1, dt * 1.5);
+      manta.vy += (desVy - manta.vy) * Math.min(1, dt * 1.6);
+      manta.x += manta.vx * dt;
+      manta.y += manta.vy * dt;
+      if (manta.x > width + 130) manta.x = -130;
+
+      const wingLift = Math.sin(manta.wingPhase) * 14;
+      const angle = Math.atan2(manta.vy, manta.vx);
+      ctx.save();
+      ctx.translate(manta.x, manta.y);
+      ctx.rotate(angle);
+
+      const grad = ctx.createRadialGradient(8, 0, 4, 0, 0, 62);
+      grad.addColorStop(0, 'rgba(64, 198, 228, 0.26)');
+      grad.addColorStop(1, 'rgba(10, 64, 96, 0.08)');
+      ctx.fillStyle = grad;
+      ctx.strokeStyle = 'rgba(118, 228, 250, 0.28)';
+      ctx.lineWidth = 1.2;
+
+      ctx.beginPath();
+      ctx.moveTo(34, -5);
+      ctx.quadraticCurveTo(10, -18, -10, -48 + wingLift);
+      ctx.quadraticCurveTo(-22, -18, -32, -2);
+      ctx.lineTo(-74, Math.sin(manta.wingPhase - 1.0) * 5);
+      ctx.lineTo(-32, 2);
+      ctx.quadraticCurveTo(-22, 18, -10, 48 - wingLift);
+      ctx.quadraticCurveTo(10, 18, 34, 5);
+      ctx.quadraticCurveTo(26, 0, 34, -5);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function stepAndDrawFish(dt) {
+      if (fish.length === 0) return;
+      const schoolX = width * (0.5 + 0.34 * Math.sin(time * 0.21));
+      const schoolY = height * (0.48 + 0.22 * Math.sin(time * 0.42));
+
+      for (let i = 0; i < fish.length; i++) {
+        const f = fish[i];
+        const tx = schoolX + f.ox + Math.sin(time * 0.9 + f.phase) * 14;
+        const ty = schoolY + f.oy + Math.cos(time * 1.1 + f.phase) * 10;
+        let dvx = (tx - f.x) * 1.6;
+        let dvy = (ty - f.y) * 1.6;
+
+        if (pointer.active) {
+          const dx = f.x - pointer.x;
+          const dy = f.y - pointer.y;
+          const d = Math.hypot(dx, dy);
+          if (d < 130 && d > 1) {
+            const push = ((130 - d) / 130) * 185;
+            dvx += (dx / d) * push;
+            dvy += (dy / d) * push;
+          }
+        }
+
+        f.vx += (dvx - f.vx) * Math.min(1, dt * 3.4);
+        f.vy += (dvy - f.vy) * Math.min(1, dt * 3.4);
+        f.x += f.vx * dt;
+        f.y += f.vy * dt;
+
+        const heading = Math.atan2(f.vy, f.vx);
+        const tailWag = Math.sin(time * 9.5 + f.phase) * 3.2 * f.scale;
+        const len = 11 * f.scale;
+        const wid = 4.2 * f.scale;
+
+        ctx.save();
+        ctx.translate(f.x, f.y);
+        ctx.rotate(heading);
+        ctx.fillStyle = f.tint;
+        ctx.beginPath();
+        ctx.moveTo(len, 0);
+        ctx.quadraticCurveTo(len * 0.1, -wid, -len * 0.75, 0);
+        ctx.lineTo(-len * 1.25, -wid * 0.9 + tailWag);
+        ctx.lineTo(-len * 1.25, wid * 0.9 + tailWag);
+        ctx.lineTo(-len * 0.75, 0);
+        ctx.quadraticCurveTo(len * 0.1, wid, len, 0);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
     function step(dt) {
       time += dt;
       ctx.clearRect(0, 0, width, height);
+
+      if (hasKelp) drawKelp();
 
       // Drifting bioluminescent plankton motes
       for (let i = 0; i < motes.length; i++) {
@@ -1189,6 +1345,9 @@
 
       if (prefersReducedMotion) return;
 
+      stepAndDrawManta(dt);
+      stepAndDrawFish(dt);
+
       for (let i = 0; i < jellies.length; i++) {
         stepJelly(jellies[i], dt);
         drawJelly(jellies[i]);
@@ -1198,7 +1357,7 @@
     const visObserver = new IntersectionObserver((entries) => {
       visible = entries[0].isIntersecting;
     }, { threshold: 0.02 });
-    visObserver.observe(footer);
+    visObserver.observe(container);
 
     window.addEventListener('resize', resize);
     resize();
@@ -1215,5 +1374,14 @@
     requestAnimationFrame(loop);
   }
 
-  initFooterJellyfish();
+  initJellyfishField('site-footer', 'footer-jellyfish-canvas', FOOTER_JELLY_SPECS, {
+    moteCount: 24,
+    hasKelp: true
+  });
+  initJellyfishField('book', 'book-jellyfish-canvas', BOOK_JELLY_SPECS, {
+    moteCount: 16,
+    fishCount: 16,
+    hasManta: true,
+    hasKelp: true
+  });
 })();
